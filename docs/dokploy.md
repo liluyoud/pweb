@@ -23,7 +23,7 @@ Navegador ──HTTPS──▶ Traefik (Dokploy) ──HTTP──▶ gateway (ng
 | [docker-compose.yml](../docker-compose.yml) | Declara os três serviços, a rede `interna` e os volumes dos bancos |
 | [gateway/Dockerfile](../gateway/Dockerfile) | Compila o site do Acadêmico para `/avaliacao/` e monta o nginx |
 | [gateway/nginx.conf](../gateway/nginx.conf) | Rotas por subcaminho; remove o prefixo antes de repassar às APIs |
-| [academico/Dockerfile](../academico/Dockerfile) | API do Acadêmico; popula o banco com exemplos no primeiro início |
+| [academico/Dockerfile](../academico/Dockerfile) | API do Acadêmico; popula o banco com exemplos quando ele está vazio |
 | [controle_n2/Dockerfile](../controle_n2/Dockerfile) | Servidor do Controle N2 em modo de produção |
 
 Só o serviço `gateway` recebe domínio. Os outros dois não ficam expostos: o gateway fala com eles pela rede `interna`. Os bancos SQLite ficam nos volumes `academico-dados` e `controle-n2-dados`, que sobrevivem aos novos deploys.
@@ -46,7 +46,7 @@ Só o serviço `gateway` recebe domínio. Os outros dois não ficam expostos: o 
 ## 2. Criar o serviço Compose
 
 1. No Dokploy, abra **Projects** e crie um projeto, por exemplo `pweb`.
-2. Dentro do projeto, clique em **Create Service** → **Compose**.
+2. Dentro do projeto, clique em **Create Service** → **Compose**. Não use **Application**: ela trata o arquivo indicado como um Dockerfile e falha com `unknown instruction: services:`.
 3. Dê um nome (por exemplo `pweb`) e escolha o tipo **Docker Compose** (não **Docker Stack**, que não aceita `build`).
 
 ## 3. Apontar para o repositório público
@@ -106,7 +106,7 @@ Não ative a remoção de prefixo (*strip path*): os subcaminhos `/avaliacao` e 
 1. Clique em **Deploy** e acompanhe a aba **Deployments** (logs do build).
 2. O primeiro build leva alguns minutos: baixa as imagens `oven/bun` e `nginx`, instala dependências e compila o site do Acadêmico.
 3. Ao final, os três contêineres devem aparecer em execução na aba **Logs** (selecione cada serviço). Mensagens esperadas:
-   - `academico-api`: `✅ Pronto! Banco populado…` (só no primeiro início) e `✅ API rodando…`
+   - `academico-api`: `📭 Banco vazio: colocando dados de exemplo.` e `✅ Pronto! Banco populado…` no primeiro início (nos seguintes, `📚 Banco já tem … registros`), depois `✅ API rodando…`
    - `controle-n2`: `Controle N2 em http://0.0.0.0:3400/`
 
 O certificado HTTPS pode levar até um minuto para ser emitido depois do primeiro acesso.
@@ -133,7 +133,7 @@ A lista `controle_n2/docs/alunos.md` **não está no GitHub** (ela está no `.gi
 
 Depois de enviar alterações para a `main`, clique em **Deploy** novamente. Para deploy automático a cada push, copie a URL de webhook mostrada na aba **Deployments** e cadastre-a em **GitHub → Settings → Webhooks** do repositório (tipo `application/json`, evento *push*).
 
-Os bancos não são apagados em novos deploys. Para recomeçar um deles do zero, pare o serviço e remova o volume correspondente na aba **Volumes**/**Advanced** (ou com `docker volume rm` no servidor). O Acadêmico volta a ser populado com exemplos no início seguinte.
+Os bancos não são apagados em novos deploys. Para recomeçar um deles do zero, pare o serviço e remova o volume correspondente na aba **Volumes**/**Advanced** (ou com `docker volume rm` no servidor). O Acadêmico volta a ser populado com exemplos no início seguinte: a cada início do contêiner, [popular-se-vazio.ts](../academico/apps/api/src/banco/popular-se-vazio.ts) insere os dados de exemplo somente se não houver nenhum aluno, professor, disciplina ou matrícula. Cadastros feitos pelo site nunca são apagados por um deploy.
 
 Para cópias de segurança, use **Volume Backups** do Dokploy nos volumes `controle-n2-dados` e `academico-dados`.
 
@@ -154,6 +154,7 @@ Depois rode `docker compose up --build` e abra `http://localhost:8080/`. Não en
 
 | Sintoma | Causa provável e solução |
 | --- | --- |
+| `dockerfile parse error … unknown instruction: services:` | O serviço foi criado como **Application** (build por Dockerfile) apontando para o `docker-compose.yml`. Apague-o e crie um serviço **Compose** (etapa 2) |
 | Deploy para com “Defina APP_KEY…” | Variável ausente na aba **Environment**; salve e faça o deploy de novo |
 | `404 page not found` (texto do Traefik) | Domínio ausente ou ligado ao serviço errado; confira **Service Name** `gateway` e porta `80` |
 | `502 Bad Gateway` (página do nginx) | Uma das APIs não iniciou; veja os logs de `academico-api` e `controle-n2` |

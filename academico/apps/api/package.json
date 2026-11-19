@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "bun --watch src/index.ts",
     "start": "bun src/index.ts",
-    "banco:popular": "bun src/banco/popular.ts"
+    "banco:popular": "bun src/banco/popular.ts",
+    "banco:popular-se-vazio": "bun src/banco/popular-se-vazio.ts"
   },
   "dependencies": {
     "@academico/tipos": "workspace:*",

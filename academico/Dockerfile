@@ -16,5 +16,6 @@ ENV ACADEMICO_BANCO=/dados/academico.sqlite
 WORKDIR /app/apps/api
 EXPOSE 3333
 
-# No primeiro início (banco ainda inexistente), coloca os dados de exemplo.
-CMD ["sh", "-c", "[ -f \"$ACADEMICO_BANCO\" ] || bun src/banco/popular.ts; exec bun src/index.ts"]
+# A cada início, coloca os dados de exemplo se o banco estiver vazio
+# (sem apagar o que já foi cadastrado) e depois liga a API.
+CMD ["sh", "-c", "bun src/banco/popular-se-vazio.ts && exec bun src/index.ts"]

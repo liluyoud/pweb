@@ -1,0 +1,15 @@
+{
+  "name": "gerador-site-aula",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "gerar": "bun build.js",
+    "fundos": "bun gerar-fundos.js"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-icons": "^5.4.0",
+    "sharp": "^0.34.0"
+  }
+}
