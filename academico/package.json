@@ -1,0 +1,12 @@
+{
+  "name": "controle-academico",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "bun run --filter \"@academico/*\" dev",
+    "dev:api": "bun run --filter @academico/api dev",
+    "dev:web": "bun run --filter @academico/web dev",
+    "banco:popular": "bun run --filter @academico/api banco:popular",
+    "build": "bun run --filter @academico/web build"
+  }
+}

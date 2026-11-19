@@ -1,0 +1,10 @@
+node_modules
+dist
+*.sqlite
+*.sqlite-*
+.DS_Store
+*.log
+/controle_n2/docs/alunos.md
+.env
+.env.*
+!.env.example
