@@ -24,8 +24,9 @@ import type {
 // Função base: faz o pedido para a API e devolve a resposta já convertida.
 // Os pedidos para "/api/..." são repassados pelo Vite para a API
 // (veja a parte "proxy" em vite.config.ts).
+// BASE_URL é "/" em casa e "/avaliacao/" no servidor; assim a API fica em /avaliacao/api.
 async function requisicao(caminho: string, metodo: string = "GET", dados?: object) {
-  const resposta = await fetch("/api" + caminho, {
+  const resposta = await fetch(import.meta.env.BASE_URL + "api" + caminho, {
     method: metodo,
     headers: { "Content-Type": "application/json" },
     // JSON.stringify transforma o objeto em texto para enviar pela rede.

@@ -7,6 +7,7 @@
     "dev": "bun --watch src/servidor/index.ts",
     "start": "bun src/servidor/index.ts",
     "auditoria": "bun src/servidor/auditoria.ts",
+    "iniciar-grupos": "bun src/servidor/iniciar-grupos.ts",
     "verificar": "tsc --noEmit",
     "test": "bun test"
   },

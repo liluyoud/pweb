@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#113f35" />
+    <meta name="description" content="Sistemas da disciplina de Programação Web: Controle Acadêmico e Controle N2." />
+    <title>Programação Web</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23113f35'/%3E%3Cpath d='M11 10 5 16l6 6M21 10l6 6-6 6' stroke='%23fff' stroke-width='2.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+    <style>
+      :root {
+        --fundo: #f4f6f3;
+        --cartao: #ffffff;
+        --texto: #17211d;
+        --suave: #56635d;
+        --borda: #d9e0db;
+        --destaque: #113f35;
+        --destaque-claro: #e3efe9;
+        --foco: #1f7a5c;
+        color-scheme: light;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --fundo: #0f1513;
+          --cartao: #18201d;
+          --texto: #e8eeea;
+          --suave: #a3b1aa;
+          --borda: #2b3732;
+          --destaque: #7fd1ae;
+          --destaque-claro: #1f2e28;
+          --foco: #7fd1ae;
+          color-scheme: dark;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--fundo);
+        color: var(--texto);
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        line-height: 1.5;
+        display: flex;
+        flex-direction: column;
+      }
+      main {
+        width: 100%;
+        max-width: 880px;
+        margin: 0 auto;
+        padding: 4rem 1rem 2rem;
+        flex: 1;
+      }
+      .rotulo {
+        color: var(--destaque);
+        font-size: .8rem;
+        font-weight: 700;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        margin: 0 0 .5rem;
+      }
+      h1 { font-size: clamp(2rem, 5vw, 2.8rem); line-height: 1.15; margin: 0 0 .75rem; }
+      .introducao { color: var(--suave); font-size: 1.1rem; max-width: 40rem; margin: 0 0 2.5rem; }
+      .sistemas {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 1rem;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .sistema {
+        display: flex;
+        flex-direction: column;
+        gap: .6rem;
+        height: 100%;
+        padding: 1.5rem;
+        background: var(--cartao);
+        border: 1px solid var(--borda);
+        border-radius: 14px;
+        color: inherit;
+        text-decoration: none;
+        transition: border-color .15s, transform .15s;
+      }
+      .sistema:hover { border-color: var(--destaque); transform: translateY(-2px); }
+      .sistema:focus-visible { outline: 3px solid var(--foco); outline-offset: 3px; }
+      .sistema h2 { font-size: 1.3rem; margin: 0; }
+      .sistema p { color: var(--suave); margin: 0; flex: 1; }
+      .caminho {
+        align-self: flex-start;
+        background: var(--destaque-claro);
+        color: var(--destaque);
+        border-radius: 999px;
+        padding: .15rem .65rem;
+        font: 600 .85rem ui-monospace, SFMono-Regular, Consolas, monospace;
+      }
+      .acessar { color: var(--destaque); font-weight: 600; }
+      footer {
+        color: var(--suave);
+        font-size: .9rem;
+        text-align: center;
+        padding: 1.5rem 1rem 2rem;
+      }
+      footer a { color: var(--destaque); }
+      @media (prefers-reduced-motion: reduce) { .sistema { transition: none; } .sistema:hover { transform: none; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p class="rotulo">Programação Web</p>
+      <h1>Sistemas da disciplina</h1>
+      <p class="introducao">Escolha o sistema que deseja acessar.</p>
+      <ul class="sistemas">
+        <li>
+          <a class="sistema" href="/avaliacao/">
+            <span class="caminho">/avaliacao</span>
+            <h2>Controle Acadêmico</h2>
+            <p>Projeto de referência com cadastro de alunos, professores, disciplinas e matrículas, dashboard e relatórios.</p>
+            <span class="acessar">Abrir sistema →</span>
+          </a>
+        </li>
+        <li>
+          <a class="sistema" href="/n2/">
+            <span class="caminho">/n2</span>
+            <h2>Controle N2</h2>
+            <p>Escolha de grupos, envio do link do GitHub e acompanhamento das avaliações da N2.</p>
+            <span class="acessar">Abrir sistema →</span>
+          </a>
+        </li>
+      </ul>
+    </main>
+    <footer>
+      Código-fonte no <a href="https://github.com/liluyoud/pweb" target="_blank" rel="noopener noreferrer">GitHub</a>.
+    </footer>
+  </body>
+</html>

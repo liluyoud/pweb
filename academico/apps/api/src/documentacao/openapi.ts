@@ -174,8 +174,11 @@ export const especificacao = {
       "O **status** da matrícula (`aprovado`, `reprovado` ou `cursando`) é calculado pela API a partir das notas.",
   },
 
-  // Onde a API está rodando (usado pelo botão "Test Request")
-  servers: [{ url: "http://localhost:3333", description: "API local" }],
+  // Onde a API está rodando (usado pelo botão "Test Request").
+  // No servidor, URL_PUBLICA (ex.: https://pweb.computacao.cloud/avaliacao) substitui o endereço local.
+  servers: [Bun.env.URL_PUBLICA
+    ? { url: Bun.env.URL_PUBLICA, description: "API publicada" }
+    : { url: "http://localhost:3333", description: "API local" }],
 
   // Grupos que aparecem no menu lateral da documentação
   tags: [

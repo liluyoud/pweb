@@ -14,7 +14,7 @@ Na apresentação, demonstrem um cadastro válido, o filtro, uma operação reje
 
 Consulte os [critérios de avaliação da N2](criterios-de-avaliacao.md) para ver como o projeto, a demonstração coletiva e as respostas individuais valem pontos.
 
-Para começar, consultem o [tutorial do Controle Acadêmico](../../academico/tutorial.md) e o [material de estudo compartilhado](../../docs/README.md).
+Para começar, consultem o [tutorial do Controle Acadêmico](../../academico/tutorial.md), o [tutorial do Controle N2](../tutorial.md) e o [material de estudo compartilhado](../../docs/README.md).
 
 ## Grupo 01: Boto Cor de Rosa
 

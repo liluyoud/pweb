@@ -2,6 +2,8 @@
 
 A N2 vale **50 pontos por aluno**. O projeto vale **20 pontos** e a apresentação presencial vale **30 pontos**, sendo **10 pontos coletivos** e **20 pontos individuais**.
 
+Este documento define a avaliação acadêmica. A aplicação atual registra grupos, repositórios, participantes e encerramentos; as notas numéricas são registradas pelo professor fora dela. No sistema, o professor confirma o fim de cada rodada e aciona os próximos sorteios. O [guia de uso](uso.md) explica os controles disponíveis.
+
 | Parte | Pontuação máxima | Como a nota é atribuída |
 | --- | ---: | --- |
 | Projeto entregue | 20 | Uma nota para o grupo, com base no código-fonte e na documentação |
@@ -27,7 +29,7 @@ Em cada critério, o professor pode atribuir pontuação parcial pelo que estive
 
 ## Ordem de apresentação dos grupos
 
-O sistema sorteia o primeiro grupo antes do início das apresentações. Quando o professor encerra a apresentação de um grupo, o sistema sorteia o próximo entre os que ainda não apresentaram. O sorteio continua até todos os grupos terem apresentado.
+O professor usa **Escolher grupo** para sortear o primeiro grupo antes do início das apresentações. Quando encerra a avaliação de um grupo, volta ao painel e usa **Escolher grupo** novamente para sortear o próximo entre os que ainda não foram finalizados. O procedimento continua até todos os grupos terem apresentado.
 
 ## Apresentação presencial coletiva — 10 pontos
 
@@ -57,9 +59,9 @@ Depois da apresentação coletiva, o professor faz rodadas de perguntas sobre o 
 
 ### Como conduzir as rodadas
 
-1. **Sortear a dupla.** O sistema sorteia aleatoriamente um aluno principal e um auxiliar entre os integrantes que ainda não têm nota individual. São dois alunos diferentes.
+1. **Sortear a dupla.** O professor usa **Escolher dupla** para sortear aleatoriamente um aluno principal e um auxiliar entre os integrantes que ainda não participaram. São dois alunos diferentes. O professor deve manter o registro externo das notas individuais correspondente às participações.
 2. **Ouvir os dois.** O professor faz uma pergunta sobre o projeto. O principal responde primeiro. O auxiliar responde à mesma pergunta com a própria explicação e pode complementar o que foi dito.
 3. **Registrar as notas.** Quando pelo menos um dos dois conseguir explicar o ponto central da pergunta, o professor avalia o que cada um demonstrou e registra uma nota individual de 0 a 20 para cada um. Quando nenhum dos dois conseguir responder suficientemente, o professor registra a **mesma nota de 0 a 20 para os dois**, considerando o que a dupla demonstrou pelos critérios da tabela. Se a dupla não demonstrar entendimento, a nota comum é zero.
-4. **Abrir a pergunta, se for o caso.** Se nenhum dos sorteados conseguir responder, o professor pode oferecer a mesma pergunta aos demais integrantes ainda sem nota individual. Se um aluno se candidatar e responder, o professor avalia essa resposta e registra a nota individual do voluntário. Essa nota é dele. As notas da dupla permanecem registradas. O voluntário sai dos próximos sorteios assim que a nota dele é lançada.
-5. **Repetir até avaliar todos.** Após cada rodada, o sistema sorteia uma nova dupla entre os alunos ainda sem nota. Principal e auxiliar também saem do sorteio assim que recebem suas notas. Se restar apenas um aluno, ele responde sozinho e recebe nota pelos mesmos critérios.
-6. **Encerrar o grupo.** Quando todos os integrantes tiverem nota individual, o professor fecha a apresentação daquele grupo. Se ainda houver grupos pendentes, o sistema sorteia qual apresenta em seguida.
+4. **Abrir a pergunta, se for o caso.** Se nenhum dos sorteados conseguir responder, o professor pode usar **Chamar outro integrante**, confirmar e selecionar uma pessoa disponível para a mesma pergunta. Se ela se candidatar e responder, o professor avalia a resposta e registra externamente sua nota individual. Essa nota é dela, e as notas da dupla permanecem registradas. Ao finalizar a rodada, o voluntário também aparece com check; sua participação o exclui dos próximos sorteios.
+5. **Repetir até avaliar todos.** Após cada rodada, o professor registra as notas externamente, confirma **Finalizar avaliação da dupla** e usa **Escolher dupla** para continuar. Principal, auxiliar e voluntário registrado na rodada concluída aparecem com check e ficam fora dos próximos sorteios. Se restar apenas um aluno, ele responde sozinho e recebe nota pelos mesmos critérios.
+6. **Encerrar o grupo.** Quando todos os integrantes tiverem nota individual, o professor confirma **Finalizar avaliação do grupo**. O sistema marca o cartão em verde com check e permite consultar o histórico. Se ainda houver grupos pendentes, o professor usa **Escolher grupo** para continuar. O aplicativo permite encerrar antes de todos participarem, portanto cabe ao professor conferir o atendimento ao procedimento acadêmico.

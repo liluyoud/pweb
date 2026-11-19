@@ -22,7 +22,9 @@ export function paginaDocumentacao() {
   const html = renderApiReference({
     pageTitle: "API · Controle Acadêmico",
     config: {
-      url: "/api/openapi.json", // de onde o Scalar lê a descrição da API
+      // De onde o Scalar lê a descrição da API. O endereço é relativo a /api/docs,
+      // então também funciona em um subcaminho (/avaliacao/api/docs).
+      url: "openapi.json",
     },
   });
 

@@ -1,3 +1,20 @@
+export const LIMITE_ARQUIVO_ALUNOS = 1024 * 1024;
+
+export type CadastroAluno = { nome: string; nascimento: string };
+
+export type ResultadoImportacaoAlunos = {
+  total: number;
+  adicionados: number;
+  atualizados: number;
+  inalterados: number;
+  totalCadastrados: number;
+};
+
+export type ImportacaoAlunos = {
+  painel: PainelProfessor;
+  importacao: ResultadoImportacaoAlunos;
+};
+
 export type Projeto = {
   id: number;
   nome: string;
@@ -38,6 +55,7 @@ export type PainelProfessor = {
   grupos: Grupo[];
   avaliacaoAtual: AvaliacaoGrupo | null;
   avaliacaoAlunos: AvaliacaoAlunos | null;
+  avaliacoesConcluidas: (AvaliacaoAlunos & { grupoId: number })[];
   alunosSemGrupo: { matricula: string; nome: string }[];
   auditoria: (EventoAuditoria & { nome: string | null })[];
 };
@@ -49,9 +67,23 @@ export type AvaliacaoGrupo = {
 
 export type AlunoDaAvaliacao = { matricula: string; nome: string };
 
+export type RodadaAvaliacao = {
+  id: number;
+  principal: AlunoDaAvaliacao;
+  assistente: AlunoDaAvaliacao | null;
+  aberta: boolean;
+  voluntario: AlunoDaAvaliacao | null;
+};
+
 export type AvaliacaoAlunos = {
   integrantes: AlunoDaAvaliacao[];
-  dupla: { principal: AlunoDaAvaliacao; assistente: AlunoDaAvaliacao | null } | null;
+  dupla: RodadaAvaliacao | null;
+  rodadasFinalizadas: RodadaAvaliacao[];
 };
+
+export type AcaoAvaliacao =
+  | { tipo: "finalizar-avaliacao"; rodadaId: number | null }
+  | { tipo: "finalizar-dupla" | "abrir-pergunta"; rodadaId: number }
+  | { tipo: "escolher-voluntario"; rodadaId: number; matricula: string };
 
 export type PainelSessao = Painel | PainelProfessor;

@@ -1,0 +1,64 @@
+# Publica os dois projetos em um único domínio:
+#
+#   https://pweb.computacao.cloud/            → página inicial (index.html)
+#   https://pweb.computacao.cloud/avaliacao/  → Controle Acadêmico (academico/)
+#   https://pweb.computacao.cloud/n2/         → Controle N2 (controle_n2/)
+#
+# Só o serviço "gateway" recebe o domínio no Dokploy. Ele serve a página inicial
+# e o site do Acadêmico e repassa os demais pedidos aos outros serviços pela rede "interna".
+# O passo a passo está em docs/dokploy.md.
+
+services:
+  gateway:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - academico-api
+      - controle-n2
+    expose:
+      - "80"
+    networks:
+      - interna
+
+  academico-api:
+    build: ./academico
+    restart: unless-stopped
+    environment:
+      ACADEMICO_BANCO: /dados/academico.sqlite
+      URL_PUBLICA: ${URL_PUBLICA_AVALIACAO:-https://pweb.computacao.cloud/avaliacao}
+    volumes:
+      - academico-dados:/dados
+    expose:
+      - "3333"
+    networks:
+      - interna
+
+  controle-n2:
+    build: ./controle_n2
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: "3400"
+      CAMINHO_BASE: /n2
+      CONFIAR_PROXY: "1"
+      CONTROLE_N2_BANCO: /dados/controle_n2.sqlite
+      # Valores definidos na aba Environment do Dokploy (nunca no repositório).
+      APP_KEY: ${APP_KEY:?Defina APP_KEY na aba Environment do Dokploy}
+      PROFESSOR_MATRICULA: ${PROFESSOR_MATRICULA:?Defina PROFESSOR_MATRICULA na aba Environment do Dokploy}
+      PROFESSOR_DATA_NASCIMENTO: ${PROFESSOR_DATA_NASCIMENTO:?Defina PROFESSOR_DATA_NASCIMENTO na aba Environment do Dokploy}
+    volumes:
+      - controle-n2-dados:/dados
+    expose:
+      - "3400"
+    networks:
+      - interna
+
+networks:
+  interna:
+
+volumes:
+  academico-dados:
+  controle-n2-dados:

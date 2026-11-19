@@ -15,8 +15,9 @@ const elementoRaiz = document.getElementById("root")!;
 
 createRoot(elementoRaiz).render(
   <StrictMode>
-    {/* BrowserRouter permite trocar de página sem recarregar o site */}
-    <BrowserRouter>
+    {/* BrowserRouter permite trocar de página sem recarregar o site.
+        basename é o endereço base do site ("/" em casa, "/avaliacao/" no servidor). */}
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <App />
     </BrowserRouter>
   </StrictMode>

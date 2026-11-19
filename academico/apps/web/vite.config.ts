@@ -11,6 +11,11 @@ import { defineConfig } from "vite";
 export default defineConfig({
   plugins: [react(), tailwindcss()],
 
+  // Endereço onde o site será publicado. Em casa é "/" (http://localhost:5173/).
+  // No servidor, o Dockerfile usa CAMINHO_BASE=/avaliacao/ para gerar o site
+  // dentro de https://pweb.computacao.cloud/avaliacao/.
+  base: process.env.CAMINHO_BASE || "/",
+
   resolve: {
     // Atalho: "@/" significa "a pasta src/".
     // Assim escrevemos  import { Button } from "@/components/ui/button"

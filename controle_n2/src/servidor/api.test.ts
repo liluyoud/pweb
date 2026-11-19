@@ -167,7 +167,8 @@ test("o aluno entra, consulta todos os projetos e troca de grupo sem ultrapassar
     const sorteio = await pedir("/app/professor/sorteio", "PUT", undefined, cookieProfessor);
     expect(sorteio.status).toBe(200);
     const sorteado = (await sorteio.json()).avaliacaoAtual;
-    expect([1, 2, 3]).toContain(sorteado.grupoId);
+    // Os grupos 2 e 3 têm integrantes, mas apenas o grupo 1 enviou o link do GitHub.
+    expect(sorteado.grupoId).toBe(1);
     expect(sorteado.estado).toBe("sorteado");
     expect((await pedir("/app/professor/dupla", "PUT", { grupoId: sorteado.grupoId }, cookieProfessor)).status).toBe(409);
     const repetido = await pedir("/app/professor/sorteio", "PUT", undefined, cookieProfessor);
@@ -195,9 +196,70 @@ test("o aluno entra, consulta todos os projetos e troca de grupo sem ultrapassar
     }
     const novaConsulta = await (await pedir("painel", "GET", undefined, cookieProfessor)).json();
     expect(novaConsulta.avaliacaoAlunos.dupla).toEqual(dupla);
+    const fim = await pedir("/app/professor/avaliacao/acoes", "PUT", {
+      grupoId: sorteado.grupoId, tipo: "finalizar-avaliacao", rodadaId: dupla.id,
+    }, cookieProfessor);
+    expect(fim.status).toBe(200);
+    const finalizado = await fim.json();
+    expect(finalizado.avaliacaoAtual).toBeNull();
+    expect(finalizado.avaliacaoAlunos).toBeNull();
+    expect(finalizado.avaliacoesConcluidas).toHaveLength(1);
+    expect(finalizado.avaliacoesConcluidas[0]).toMatchObject({
+      grupoId: sorteado.grupoId, dupla: null, rodadasFinalizadas: [{ ...dupla, finalizada: true }],
+    });
+    const consultaFinalizada = await (await pedir("painel", "GET", undefined, cookieProfessor)).json();
+    expect(consultaFinalizada.avaliacoesConcluidas).toEqual(finalizado.avaliacoesConcluidas);
+    expect((await pedir("/app/professor/avaliacao", "PUT", { grupoId: sorteado.grupoId }, cookieProfessor)).status).toBe(409);
+    const semCandidatos = await pedir("/app/professor/sorteio", "PUT", undefined, cookieProfessor);
+    expect(semCandidatos.status).toBe(409);
+    expect((await semCandidatos.json()).erro).toContain("link do GitHub");
+    expect((await pedir(rotaRepositorio, "PUT", {
+      grupoId: 3, link: "https://github.com/turma/projeto-tres",
+    }, novaSessao)).status).toBe(200);
+    const proximoSorteio = await pedir("/app/professor/sorteio", "PUT", undefined, cookieProfessor);
+    expect(proximoSorteio.status).toBe(200);
+    expect((await proximoSorteio.json()).avaliacaoAtual.grupoId).toBe(3);
   } finally {
     servidor.stop(true);
     banco.fechar();
+  }
+});
+
+test("atrás de proxy HTTPS, valida a origem pública, separa tentativas por IP e marca o cookie como Secure", async () => {
+  const alunos = lerAlunos("| 1 | PESSOA FICTÍCIA | 01/02/2005 |");
+  const projetos = lerProjetos(await Bun.file(new URL("../../docs/trabalhos.md", import.meta.url)).text());
+  const env = { APP_KEY: "ab".repeat(32), PROFESSOR_MATRICULA: "999", PROFESSOR_DATA_NASCIMENTO: "1985-01-02" };
+  for (const confiarProxy of [true, false]) {
+    const banco = abrirBanco(":memory:");
+    const configuracao = lerConfiguracao({ ...env, ...(confiarProxy && { CONFIAR_PROXY: "1" }) });
+    expect(configuracao.confiarProxy).toBe(confiarProxy);
+    const servidor = Bun.serve({ hostname: "127.0.0.1", port: 0, routes: criarApi(alunos, projetos, banco, configuracao) });
+    const login = (nascimento: string, ip: string) => fetch(new URL("/api/sessao", servidor.url), {
+      method: "POST",
+      headers: {
+        Origin: "https://" + servidor.url.host, "X-Forwarded-Proto": "https", "X-Real-IP": ip,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ matricula: "1", nascimento }),
+    });
+    try {
+      if (!confiarProxy) {
+        // Sem confiar no proxy, a origem HTTPS não confere com o servidor HTTP.
+        expect((await login("2005-02-01", "10.0.0.1")).status).toBe(403);
+        continue;
+      }
+      const resposta = await login("2005-02-01", "10.0.0.1");
+      expect(resposta.status).toBe(200);
+      expect(resposta.headers.get("Set-Cookie")).toContain("; Secure");
+      for (let tentativa = 0; tentativa < 20; tentativa++) {
+        expect((await login("2000-01-01", "10.0.0.2")).status).toBe(401);
+      }
+      expect((await login("2000-01-01", "10.0.0.2")).status).toBe(429);
+      expect((await login("2005-02-01", "10.0.0.3")).status).toBe(200);
+    } finally {
+      servidor.stop(true);
+      banco.fechar();
+    }
   }
 });
 
@@ -208,6 +270,7 @@ test("a dupla usa os integrantes registrados no início, mesmo após uma troca d
     banco.escolher("001", 1, 10);
     banco.escolher("002", 1, 10);
     banco.escolher("003", 2, 10);
+    banco.salvarRepositorio("001", 1, "https://github.com/turma/projeto");
     expect(banco.sortearGrupo(new Set([1]), alunos)).toBe(true);
     expect(banco.iniciarAvaliacao(1, alunos)).toBe(true);
     banco.escolher("001", 2, 10);
@@ -218,6 +281,49 @@ test("a dupla usa os integrantes registrados no início, mesmo após uma troca d
     expect([dupla.principal, dupla.assistente].sort()).toEqual(["001", "002"]);
     expect(banco.sortearDupla(1, alunos)).toBe(true);
     expect(banco.duplaDaAvaliacao(1)).toEqual(dupla);
+  } finally {
+    banco.fechar();
+  }
+});
+
+test("só podem ser escolhidos grupos com integrantes e link do GitHub", () => {
+  const banco = abrirBanco(":memory:");
+  const alunos = new Set(["001", "002"]);
+  try {
+    const grupos = new Set([1, 2, 3]);
+    expect(banco.sortearGrupo(grupos, alunos)).toBe(false);
+    banco.escolher("001", 1, 10);
+    expect(banco.sortearGrupo(grupos, alunos)).toBe(false);
+    expect(banco.avaliacaoAtual()).toBeNull();
+    banco.escolher("002", 2, 10);
+    expect(banco.salvarRepositorio("002", 2, "https://github.com/turma/projeto")).toBe(true);
+    banco.escolher("002", 3, 10);
+    expect(banco.sortearGrupo(grupos, alunos)).toBe(false);
+    expect(banco.salvarRepositorio("001", 1, "https://github.com/turma/projeto")).toBe(true);
+    for (let tentativa = 0; tentativa < 10; tentativa++) {
+      expect(banco.sortearGrupo(grupos, alunos)).toBe(true);
+      expect(banco.avaliacaoAtual()).toEqual({ grupoId: 1, estado: "sorteado" });
+    }
+  } finally {
+    banco.fechar();
+  }
+});
+
+test("a avaliação só inicia com o grupo sorteado, sem alterar o sorteio ao bloquear", () => {
+  const banco = abrirBanco(":memory:");
+  const alunos = new Set(["001"]);
+  try {
+    banco.escolher("001", 1, 10);
+    expect(banco.salvarRepositorio("001", 1, "https://github.com/turma/projeto")).toBe(true);
+    expect(banco.iniciarAvaliacao(1, alunos)).toBe(false);
+    expect(banco.avaliacaoAtual()).toBeNull();
+    expect(banco.sortearGrupo(new Set([1]), alunos)).toBe(true);
+    expect(banco.iniciarAvaliacao(2, alunos)).toBe(false);
+    expect(banco.avaliacaoAtual()).toEqual({ grupoId: 1, estado: "sorteado" });
+    expect(banco.duplaDaAvaliacao(1)).toBeNull();
+    expect(banco.iniciarAvaliacao(1, alunos)).toBe(true);
+    expect(banco.avaliacaoAtual()).toEqual({ grupoId: 1, estado: "em_avaliacao" });
+    expect(banco.iniciarAvaliacao(1, alunos)).toBe(true);
   } finally {
     banco.fechar();
   }

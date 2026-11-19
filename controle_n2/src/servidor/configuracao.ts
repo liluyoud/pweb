@@ -1,6 +1,9 @@
 export type Configuracao = {
   appKey: string;
   professor: { matricula: string; nascimento: string };
+  // Com CONFIAR_PROXY=1, o servidor usa os cabeçalhos X-Forwarded-Proto e X-Real-IP
+  // enviados pelo proxy. Só ative quando o servidor não estiver exposto diretamente.
+  confiarProxy?: boolean;
 };
 
 export function lerConfiguracao(env: NodeJS.ProcessEnv): Configuracao {
@@ -15,5 +18,5 @@ export function lerConfiguracao(env: NodeJS.ProcessEnv): Configuracao {
     Number.isNaN(data.getTime()) || data.toISOString().slice(0, 10) !== nascimento) {
     throw new Error("Defina a matrícula e a data de nascimento do professor no .env.");
   }
-  return { appKey, professor: { matricula, nascimento } };
+  return { appKey, professor: { matricula, nascimento }, confiarProxy: env.CONFIAR_PROXY?.trim() === "1" };
 }

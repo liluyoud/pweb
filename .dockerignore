@@ -1,0 +1,10 @@
+**/node_modules
+**/dist
+**/*.sqlite
+**/*.sqlite-*
+**/.env
+**/.env.*
+!**/.env.example
+.git
+controle_n2/docs/alunos.md
+

@@ -10,7 +10,8 @@ import { criarTabelas } from "./criar-tabelas";
 
 // import.meta.dir = pasta onde ESTE arquivo está (src/banco).
 // Subimos duas pastas para salvar o arquivo na raiz da API (apps/api).
-const caminhoDoArquivo = import.meta.dir + "/../../academico.sqlite";
+// No servidor, ACADEMICO_BANCO aponta para um volume que sobrevive aos deploys.
+const caminhoDoArquivo = Bun.env.ACADEMICO_BANCO || import.meta.dir + "/../../academico.sqlite";
 
 // Abre o arquivo (e cria, se ainda não existir).
 export const banco = new Database(caminhoDoArquivo, { create: true });

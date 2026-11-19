@@ -24,6 +24,8 @@ export const especificacao = {
     version: "0.1.0",
     description: "Consulte os projetos, vagas e repositórios da turma. Para entrar ou trocar de grupo e enviar o link do GitHub, use o painel do aluno no sistema.",
   },
+  // Em produção, CAMINHO_BASE (ex.: /n2) faz o Scalar testar a rota no subcaminho certo.
+  servers: [{ url: Bun.env.CAMINHO_BASE?.trim() || "/" }],
   paths: {
     "/api/grupos": {
       get: {
@@ -42,7 +44,8 @@ export const especificacao = {
 export function paginaDocumentacao() {
   const html = renderApiReference({
     pageTitle: "API · Controle N2",
-    config: { url: "/api/openapi.json" },
+    // Relativo a /docs, para funcionar também em um subcaminho (/n2/docs).
+    config: { url: "api/openapi.json" },
   });
   return new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
 }

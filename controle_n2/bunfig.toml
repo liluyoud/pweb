@@ -1,0 +1,5 @@
+# Os arquivos gerados para o navegador (JS e CSS) usam caminhos relativos.
+# Assim a página funciona tanto em http://localhost:3400/ quanto atrás de um
+# proxy em um subcaminho, como https://pweb.computacao.cloud/n2/.
+[serve.static]
+publicPath = "./"

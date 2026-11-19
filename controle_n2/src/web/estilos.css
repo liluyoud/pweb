@@ -112,6 +112,8 @@ button { cursor: pointer; }
 .cartao { background: white; border: 1px solid var(--borda); border-radius: .9rem; padding: 1.1rem; display: flex; flex-direction: column; gap: .45rem; min-width: 0; }
 .cartao.grupo-atual { background: #f4fae9; border-color: #709e54; }
 .cartao.grupo-sorteado { background: #e9f5d9; border-color: #709e54; }
+.cartao.grupo-finalizado { background: #e4f4dc; border-color: #376553; }
+.grupo-finalizado-status { color: var(--verde); }
 .acoes-avaliacao { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .6rem; border-top: 1px solid #a6bc94; margin-top: .4rem; padding-top: .7rem; }
 .acoes-avaliacao a, .painel > .introducao a { color: var(--verde); }
 .painel > .introducao h1 { margin-top: .45rem; }
@@ -122,10 +124,16 @@ button { cursor: pointer; }
 .avaliacao-lista { padding: 0; margin: 0 0 .8rem; list-style: none; }
 .avaliacao-lista li { display: grid; gap: .15rem; padding: .45rem 0; border-bottom: 1px solid var(--borda); }
 .avaliacao-lista small { font-size: .83rem; color: var(--suave); }
+.avaliacao-integrante-nome { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+.avaliacao-lista li.avaliacao-concluida { padding-inline: .5rem; background: #f2f4f3; color: var(--suave); border-radius: .4rem; }
+.avaliacao-check { flex-shrink: 0; color: var(--verde); font-weight: 750; }
 .avaliacao-dupla dl { display: grid; gap: .75rem; margin: .9rem 0 0; }
 .avaliacao-dupla dl > div { background: #e9f5d9; border-radius: .6rem; padding: .75rem; }
 .avaliacao-dupla dt { font-size: .9rem; font-weight: 700; color: var(--verde); }
 .avaliacao-dupla dd { margin: .25rem 0 0; }
+.avaliacao-historico { display: grid; gap: 1rem; margin-top: 1rem; }
+.avaliacao-rodada { border-top: 1px solid var(--borda); padding-top: .75rem; }
+.avaliacao-rodada h4 { margin: 0; }
 .cartao-topo, .cartao-rodape, .dialogo-topo, .dialogo-rodape { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .6rem; }
 .cartao h3 { font-size: 1.25rem; overflow-wrap: anywhere; }
 .cartao > p { color: var(--suave); }
@@ -177,6 +185,13 @@ button { cursor: pointer; }
 .tabela-professor th, .tabela-professor td { padding: .8rem; vertical-align: top; }
 .tabela-professor th { background: #eaf3ec; }
 .tabela-professor td { border-top: 1px solid var(--borda); overflow-wrap: anywhere; }
+.importacao-alunos { gap: 1rem; }
+.importacao-alunos form { display: grid; gap: .6rem; }
+.importacao-alunos label { font-weight: 650; }
+.importacao-alunos .campo { margin: 0; }
+.importacao-alunos .botao { justify-self: start; }
+.importacao-alunos summary { cursor: pointer; color: var(--verde); }
+.importacao-alunos pre { overflow-x: auto; padding: .75rem; background: #eaf2ed; border-radius: .55rem; }
 
 dialog { width: min(43rem, calc(100% - 2rem)); max-height: calc(100% - 2rem); padding: 0; border: 1px solid var(--borda); border-radius: 1rem; color: inherit; }
 dialog::backdrop { background: #071e15a6; }

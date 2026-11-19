@@ -1,6 +1,4 @@
-import type { Projeto } from "../tipos";
-
-type Aluno = { nome: string; nascimento: string };
+import type { CadastroAluno, Projeto } from "../tipos";
 
 const PARTICULAS = new Set(["a", "as", "o", "os", "e", "de", "da", "das", "do", "dos"]);
 
@@ -12,15 +10,22 @@ function normalizarNome(nome: string) {
 }
 
 export function lerAlunos(markdown: string) {
-  const alunos = new Map<string, Aluno>();
+  const alunos = new Map<string, CadastroAluno>();
 
-  for (const linha of markdown.split(/\r?\n/)) {
+  for (const [indice, linha] of markdown.split(/\r?\n/).entries()) {
+    if (!linha.trimStart().startsWith("|")) continue;
+    const colunas = linha.trim().replace(/^\||\|$/g, "").split("|").map((valor) => valor.trim());
+    if (colunas.every((valor) => /^:?-+:?$/.test(valor)) || /^matr[ií]cula$/i.test(colunas[0])) continue;
     const registro = linha.match(/^\s*\|\s*(\d+)\s*\|\s*([^|]+?)\s*\|\s*(\d{2})\/(\d{2})\/(\d{4})\s*\|\s*$/);
-    if (!registro) continue;
+    if (!registro) throw new Error("Linha " + (indice + 1) + " inválida. Use matrícula, nome e nascimento em DD/MM/AAAA.");
 
     const [, matricula, nomeOriginal, dia, mes, ano] = registro;
     const nome = normalizarNome(nomeOriginal);
     const nascimento = [ano, mes, dia].join("-");
+    const data = new Date(nascimento);
+    if (!nome || Number.isNaN(data.getTime()) || data.toISOString().slice(0, 10) !== nascimento) {
+      throw new Error("Nome ou data de nascimento inválida na linha " + (indice + 1) + ".");
+    }
     const anterior = alunos.get(matricula);
     if (anterior && (anterior.nome !== nome || anterior.nascimento !== nascimento)) {
       throw new Error("A lista de alunos contém dados conflitantes para uma matrícula.");

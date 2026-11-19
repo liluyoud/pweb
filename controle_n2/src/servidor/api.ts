@@ -1,9 +1,9 @@
 import { timingSafeEqual } from "node:crypto";
 import type { Server } from "bun";
-import type { Grupo, PainelSessao, Projeto } from "../tipos";
+import { LIMITE_ARQUIVO_ALUNOS, type AcaoAvaliacao, type AvaliacaoAlunos, type Grupo, type PainelSessao, type Projeto } from "../tipos";
 import type { abrirBanco } from "./banco";
 import type { Configuracao } from "./configuracao";
-import type { lerAlunos } from "./documentos";
+import { lerAlunos } from "./documentos";
 
 const LIMITE = 10;
 const DURACAO_SESSAO = 8 * 60 * 60;
@@ -20,8 +20,16 @@ function erro(mensagem: string, status: number) {
   return resposta({ erro: mensagem }, status);
 }
 
-function cookieSessao(requisicao: Request, token: string, duracao: number) {
-  const seguro = new URL(requisicao.url).protocol === "https:" ? "; Secure" : "";
+// Atrás de um proxy (Traefik → nginx), o servidor recebe HTTP mesmo quando o
+// navegador usa HTTPS. Com confiarProxy, o protocolo vem de X-Forwarded-Proto.
+function protocolo(requisicao: Request, confiarProxy = false) {
+  const informado = requisicao.headers.get("X-Forwarded-Proto")?.split(",")[0].trim();
+  if (confiarProxy && (informado === "https" || informado === "http")) return informado + ":";
+  return new URL(requisicao.url).protocol;
+}
+
+function cookieSessao(requisicao: Request, token: string, duracao: number, confiarProxy = false) {
+  const seguro = protocolo(requisicao, confiarProxy) === "https:" ? "; Secure" : "";
   return COOKIE_SESSAO + "=" + token + "; Path=/; HttpOnly; SameSite=Strict; Max-Age=" + duracao + seguro;
 }
 
@@ -37,6 +45,16 @@ function linkGithub(valor: unknown) {
   const partes = /^https:\/\/github\.com\/([a-z\d][a-z\d-]*)\/([\w.-]+)\/?$/i.exec(valor.trim());
   if (!partes || partes[2] === "." || partes[2] === "..") return null;
   return "https://github.com/" + partes[1] + "/" + partes[2];
+}
+
+function lerAcaoAvaliacao({ tipo, rodadaId, matricula }: Record<string, unknown>): AcaoAvaliacao | null {
+  if (tipo === "finalizar-avaliacao" && rodadaId === null) return { tipo, rodadaId };
+  if (typeof rodadaId !== "number" || !Number.isSafeInteger(rodadaId) || rodadaId < 1) return null;
+  if (tipo === "finalizar-avaliacao" || tipo === "finalizar-dupla" || tipo === "abrir-pergunta") {
+    return { tipo, rodadaId };
+  }
+  if (tipo === "escolher-voluntario" && typeof matricula === "string") return { tipo, rodadaId, matricula };
+  return null;
 }
 
 export function criarApi(
@@ -55,6 +73,7 @@ export function criarApi(
   if (alunos.has(configuracao.professor.matricula)) {
     throw new Error("A matrícula do professor deve ser diferente das matrículas dos alunos.");
   }
+  banco.importarAlunos(alunos);
 
   function consultarGrupos(escolhas = banco.listarEscolhas(), grupoAtual?: number | null, matricula?: string) {
     const colegasDoGrupo: string[] = [];
@@ -108,6 +127,9 @@ export function criarApi(
         grupos: consultarGrupos(escolhas).lista,
         avaliacaoAtual,
         avaliacaoAlunos,
+        avaliacoesConcluidas: banco.avaliacoesConcluidas()
+          .filter((grupoId) => grupos.has(grupoId))
+          .map((grupoId) => ({ grupoId, ...consultarAvaliacaoAlunos(grupoId) })),
         alunosSemGrupo,
         auditoria: banco.listarAuditoria().reverse().map((evento) => ({
           ...evento,
@@ -127,19 +149,26 @@ export function criarApi(
     };
   }
 
-  function consultarAvaliacaoAlunos(grupoId: number) {
+  function consultarAvaliacaoAlunos(grupoId: number): AvaliacaoAlunos {
     const dadosDoAluno = (matricula: string) => ({
       matricula, nome: alunos.get(matricula)?.nome ?? matricula,
     });
     const integrantes = banco.integrantesDaAvaliacao(grupoId, matriculasValidas)
       .map(dadosDoAluno)
       .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR") || a.matricula.localeCompare(b.matricula));
-    const sorteio = banco.duplaDaAvaliacao(grupoId);
-    const dupla = sorteio ? {
-      principal: dadosDoAluno(sorteio.principal),
-      assistente: sorteio.assistente === null ? null : dadosDoAluno(sorteio.assistente),
-    } : null;
-    return { integrantes, dupla };
+    const rodadas = banco.rodadasDaAvaliacao(grupoId).map((rodada) => ({
+      id: rodada.id,
+      principal: dadosDoAluno(rodada.principal),
+      assistente: rodada.assistente === null ? null : dadosDoAluno(rodada.assistente),
+      aberta: rodada.aberta === 1,
+      voluntario: rodada.voluntario === null ? null : dadosDoAluno(rodada.voluntario),
+      finalizada: rodada.finalizada === 1,
+    }));
+    return {
+      integrantes,
+      dupla: rodadas.find(({ finalizada }) => !finalizada) ?? null,
+      rodadasFinalizadas: rodadas.filter(({ finalizada }) => finalizada),
+    };
   }
 
   async function atender(requisicao: Request, servidor: Server<unknown>, chaveInterna?: string) {
@@ -151,7 +180,8 @@ export function criarApi(
     const sessao = sessoes.get(token);
 
     const origem = requisicao.headers.get("Origin");
-    if (method !== "GET" && (origem !== null || chaveInterna !== undefined) && origem !== url.origin) {
+    const origemEsperada = protocolo(requisicao, configuracao.confiarProxy) + "//" + url.host;
+    if (method !== "GET" && (origem !== null || chaveInterna !== undefined) && origem !== origemEsperada) {
       return erro("Origem da requisição inválida.", 403);
     }
 
@@ -160,7 +190,9 @@ export function criarApi(
     }
 
     if (method === "POST" && pathname === "/api/sessao") {
-      const ip = servidor.requestIP(requisicao)?.address ?? "local";
+      // Atrás do proxy, todos chegariam com o IP do proxy e dividiriam o mesmo limite.
+      const ipDoProxy = configuracao.confiarProxy ? requisicao.headers.get("X-Real-IP")?.trim() : undefined;
+      const ip = ipDoProxy || (servidor.requestIP(requisicao)?.address ?? "local");
       for (const [chave, registro] of falhas) {
         if (registro.expira <= agora) falhas.delete(chave);
       }
@@ -186,12 +218,12 @@ export function criarApi(
         perfil: professor ? "professor" : "aluno", matricula: numero, expira: agora + DURACAO_SESSAO * 1000,
       };
       sessoes.set(novoToken, novaSessao);
-      return resposta(painel(novaSessao), 200, cookieSessao(requisicao, novoToken, DURACAO_SESSAO));
+      return resposta(painel(novaSessao), 200, cookieSessao(requisicao, novoToken, DURACAO_SESSAO, configuracao.confiarProxy));
     }
 
     if (method === "DELETE" && pathname === "/api/sessao") {
       sessoes.delete(token);
-      return resposta({}, 200, cookieSessao(requisicao, "", 0));
+      return resposta({}, 200, cookieSessao(requisicao, "", 0, configuracao.confiarProxy));
     }
 
     if (!sessao || sessao.expira <= agora) {
@@ -210,9 +242,41 @@ export function criarApi(
       if (sessao.perfil !== perfilExigido) return erro("Seu perfil não pode realizar esta operação.", 403);
     }
 
+    if (method === "PUT" && pathname === "/app/professor/alunos") {
+      const formulario = await requisicao.formData().catch(() => null);
+      const arquivo = formulario?.get("arquivo");
+      if (!(arquivo instanceof File) || formulario!.getAll("arquivo").length !== 1 || !/\.md$/i.test(arquivo.name)) {
+        return erro("Selecione um arquivo Markdown (.md) com a tabela de alunos.", 400);
+      }
+      if (arquivo.size > LIMITE_ARQUIVO_ALUNOS) return erro("O arquivo de alunos deve ter no máximo 1 MiB.", 413);
+      let importados: ReturnType<typeof lerAlunos>;
+      try {
+        const texto = new TextDecoder("utf-8", { fatal: true }).decode(await arquivo.arrayBuffer());
+        importados = lerAlunos(texto);
+      } catch (problema) {
+        return erro(problema instanceof TypeError ? "Salve o arquivo Markdown com codificação UTF-8."
+          : problema instanceof Error ? problema.message : "Arquivo de alunos inválido.", 400);
+      }
+      if (importados.has(configuracao.professor.matricula)) {
+        return erro("A matrícula do professor não pode estar na lista de alunos.", 400);
+      }
+      const resultado = banco.importarAlunos(importados);
+      for (const [matricula, aluno] of importados) {
+        const anterior = alunos.get(matricula);
+        if (anterior && (anterior.nome !== aluno.nome || anterior.nascimento !== aluno.nascimento)) {
+          for (const [token, sessaoDoAluno] of sessoes) {
+            if (sessaoDoAluno.perfil === "aluno" && sessaoDoAluno.matricula === matricula) sessoes.delete(token);
+          }
+        }
+        alunos.set(matricula, aluno);
+        matriculasValidas.add(matricula);
+      }
+      return resposta({ painel: painel(sessao), importacao: resultado });
+    }
+
     if (method === "PUT" && pathname === "/app/professor/sorteio") {
       if (!banco.sortearGrupo(grupos, matriculasValidas)) {
-        return erro("Não há grupos com integrantes disponíveis para o sorteio.", 409);
+        return erro("Não há grupos com integrantes e link do GitHub disponíveis para o sorteio.", 409);
       }
       return resposta(painel(sessao));
     }
@@ -221,7 +285,7 @@ export function criarApi(
       const { grupoId } = await lerCorpo(requisicao);
       if (typeof grupoId !== "number" || !grupos.has(grupoId)) return erro("Grupo inválido.", 400);
       if (!banco.iniciarAvaliacao(grupoId, matriculasValidas)) {
-        return erro("O grupo precisa estar sorteado e ter integrantes para iniciar a avaliação.", 409);
+        return erro("O grupo precisa estar sorteado, ter integrantes e enviar o link do GitHub para iniciar a avaliação.", 409);
       }
       return resposta(painel(sessao));
     }
@@ -230,7 +294,19 @@ export function criarApi(
       const { grupoId } = await lerCorpo(requisicao);
       if (typeof grupoId !== "number" || !grupos.has(grupoId)) return erro("Grupo inválido.", 400);
       if (!banco.sortearDupla(grupoId, matriculasValidas)) {
-        return erro("Inicie a avaliação de um grupo com integrantes para sortear a dupla.", 409);
+        return erro("É preciso ter uma avaliação em andamento e integrantes disponíveis para o sorteio.", 409);
+      }
+      return resposta(painel(sessao));
+    }
+
+    if (method === "PUT" && pathname === "/app/professor/avaliacao/acoes") {
+      const corpo = await lerCorpo(requisicao);
+      const { grupoId } = corpo;
+      if (typeof grupoId !== "number" || !grupos.has(grupoId)) return erro("Grupo inválido.", 400);
+      const acao = lerAcaoAvaliacao(corpo);
+      if (!acao) return erro("Ação de avaliação inválida.", 400);
+      if (!banco.atualizarAvaliacao(grupoId, acao, matriculasValidas)) {
+        return erro("A ação não está disponível para esta rodada. Consulte o estado atual da avaliação.", 409);
       }
       return resposta(painel(sessao));
     }
@@ -270,7 +346,9 @@ export function criarApi(
     "/app/meu-grupo": { PUT: escreverPeloSistema },
     "/app/meu-grupo/repositorio": { PUT: escreverPeloSistema },
     "/app/professor/sorteio": { PUT: escreverPeloSistema },
+    "/app/professor/alunos": { PUT: escreverPeloSistema },
     "/app/professor/avaliacao": { PUT: escreverPeloSistema },
+    "/app/professor/avaliacao/acoes": { PUT: escreverPeloSistema },
     "/app/professor/dupla": { PUT: escreverPeloSistema },
   };
 }

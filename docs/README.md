@@ -24,4 +24,5 @@ Você pode fazer o cadastro em memória no guia de React e voltar à parte de in
 ## Documentação dos projetos
 
 - [Controle Acadêmico](../academico/docs/README.md) reúne a referência da aplicação existente, com suas rotas, tabelas e exercícios.
-- [Controle N2](../controle_n2/docs/README.md) reúne o material preparatório para o sistema de grupos da atividade N2.
+- [Publicação no Dokploy](dokploy.md) explica como subir os dois sistemas em `pweb.computacao.cloud/avaliacao` e `/n2` com Docker Compose.
+- [Controle N2](../controle_n2/docs/README.md) reúne tutorial para testar em casa, arquitetura, guia de uso, API, banco de dados e exercícios do sistema de grupos e avaliações da N2.

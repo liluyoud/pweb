@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, type SubmitEvent } from "react";
 import { createRoot } from "react-dom/client";
-import type { Grupo, Painel, PainelProfessor, PainelSessao } from "../tipos";
+import type { Grupo, Painel, PainelProfessor, PainelSessao, ResultadoImportacaoAlunos } from "../tipos";
 import {
-  consultarPainel, consultarSessao, entrar, ErroDaApi, escolherGrupo, enviarRepositorio,
-  iniciarAvaliacao, sair, sortearDupla, sortearGrupo,
+  atualizarAvaliacao, consultarPainel, consultarSessao, entrar, ErroDaApi, escolherGrupo, enviarRepositorio,
+  importarAlunos, iniciarAvaliacao, sair, sortearDupla, sortearGrupo,
 } from "./api";
 import { Button, Card, Input } from "./componentes/ui";
 import { AmbienteProfessor } from "./professor";
@@ -307,6 +307,7 @@ function PaginaProfessor({ painel, atualizar, encerrar }: {
 }) {
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState("");
+  const [resultadoImportacao, setResultadoImportacao] = useState<ResultadoImportacaoAlunos | null>(null);
 
   async function executar(acao: () => Promise<void>) {
     setOcupado(true);
@@ -327,11 +328,24 @@ function PaginaProfessor({ painel, atualizar, encerrar }: {
       <main className="painel">
         {erro && <p role="alert" className="mensagem-erro">{erro}</p>}
         <AmbienteProfessor painel={painel} ocupado={ocupado}
+          resultadoImportacao={resultadoImportacao}
+          aoImportarAlunos={(arquivo) => {
+            setResultadoImportacao(null);
+            void executar(async () => {
+              const resultado = await importarAlunos(arquivo);
+              atualizar(resultado.painel);
+              setResultadoImportacao(resultado.importacao);
+            });
+          }}
           atualizar={() => void executar(async () => atualizar(await consultarSessao()))}
           aoSortear={() => void executar(async () => atualizar(await sortearGrupo()))}
           aoIniciar={(grupoId) => void executar(async () => {
             atualizar(await iniciarAvaliacao(grupoId));
-            window.location.hash = "professor/avaliacao";
+            window.location.hash = "professor/avaliacao/" + grupoId;
+          })}
+          aoAtualizarAvaliacao={(grupoId, acao) => void executar(async () => {
+            atualizar(await atualizarAvaliacao(grupoId, acao));
+            if (acao.tipo === "finalizar-avaliacao") window.location.hash = "professor/grupos";
           })}
           aoSortearDupla={(grupoId) => void executar(async () => atualizar(await sortearDupla(grupoId)))} />
       </main>

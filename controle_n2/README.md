@@ -1,80 +1,133 @@
 # Controle N2
 
-O Controle N2 é um projeto didático de Programação Web. O objetivo é acompanhar os grupos que farão a atividade que vale a nota N2.
+Aplicação didática de Programação Web para organizar os grupos da N2, receber os links dos projetos no GitHub e acompanhar as rodadas de avaliação. O código usa nomes em português e permite estudar um fluxo completo: **React → requisição HTTP → regras no servidor → SQLite → atualização da tela**.
 
-A atividade prevê 10 grupos de até 10 integrantes, cada um com um projeto em React. Consulte os [trabalhos da N2](docs/trabalhos.md).
+A turma tem dez projetos, com até dez integrantes por grupo. Os [enunciados](docs/trabalhos.md) e os [critérios da atividade](docs/criterios-de-avaliacao.md) fazem parte deste material.
 
-## O que o aluno pode fazer
+## Por onde começar
 
-Entrar com matrícula e data de nascimento, consultar os dez projetos e escolher um grupo. O painel destaca o grupo atual e mostra as vagas. Em **Ver projeto**, o aluno pode ler o enunciado e consultar a lista atual de integrantes antes de escolher. O aluno pode trocar quantas vezes quiser, desde que haja vaga no destino. A troca libera a vaga anterior.
+| Ordem | Leitura | O que você aprende |
+| --- | --- | --- |
+| 1 | Este README | Objetivo, ferramentas e primeira execução |
+| 2 | [Tutorial](tutorial.md) | Instalar, configurar, testar em casa e acompanhar a construção |
+| 3 | [Arquitetura](arquitetura.md) | Responsabilidades, fluxo dos dados e decisões de implementação |
+| 4 | [Guia de uso](docs/uso.md) | Passo a passo das telas de aluno e professor |
+| 5 | [API](docs/api.md) e [banco de dados](docs/banco-de-dados.md) | Requisições, respostas, tabelas e transações |
+| 6 | [Testes e exercícios](docs/exercicios.md) | Verificar o comportamento e praticar alterações |
 
-Depois de escolher um grupo, qualquer integrante pode salvar ou atualizar o endereço em **Repositório do meu grupo**. Todos os alunos autenticados podem abrir os links nos cartões dos grupos, em outra aba. Use o link HTTPS do repositório, como `https://github.com/usuario/projeto`. O link fica associado ao grupo quando um aluno troca de grupo.
+As pastas [src](src/README.md), [servidor](src/servidor/README.md), [web](src/web/README.md), [componentes](src/web/componentes/README.md) e [docs](docs/README.md) também têm seus próprios guias. Para revisar conceitos, consulte o [material compartilhado](../docs/README.md).
 
-## Arquitetura
+## Ferramentas utilizadas
 
-| Camada | Papel |
+| Ferramenta | Papel nesta aplicação |
 | --- | --- |
-| Interface em React com shadcn/ui | Exibir as telas e receber as ações de quem usa o sistema |
-| API em TypeScript executada pelo Bun | Receber requisições, aplicar as regras da atividade e consultar o banco |
-| Banco SQLite | Guardar os dados do sistema |
+| Bun | Executa TypeScript, instala dependências, entrega a interface, atende HTTP e executa testes |
+| TypeScript | Define os formatos dos dados e verifica os tipos do servidor e da interface |
+| React e React DOM | Montam as telas, os formulários e as listas no navegador |
+| SQLite, por `bun:sqlite` | Guarda inscrições, repositórios, auditoria e avaliações em um arquivo |
+| CSS local | Define cores, cartões, estados dos botões e adaptação para telas pequenas |
+| `class-variance-authority` | Organiza variantes do botão; os componentes locais seguem o padrão shadcn/ui |
+| OpenAPI e Scalar | Descrevem e exibem a consulta pública dos projetos |
 
-O Bun entrega a página React e a API no mesmo endereço. A API valida os dados e inicia a sessão com um cookie. O SQLite guarda a escolha de cada aluno.
+O projeto usa um único processo e a porta **3400**. O Bun prepara os arquivos HTML, TSX e CSS da interface. Todas as dependências e versões estão no [package.json](package.json); o [bun.lock](bun.lock) registra a instalação. A documentação foi verificada com **Bun 1.4.4**.
 
 ## Como rodar
 
-O servidor carrega o arquivo `.env` na raiz do Controle N2. Em uma cópia nova do projeto, copie [`.env.example`](.env.example) para `.env` e preencha `PROFESSOR_MATRICULA`, `PROFESSOR_DATA_NASCIMENTO` (formato `AAAA-MM-DD`) e `APP_KEY`. Use uma matrícula diferente das matrículas dos alunos. Para gerar uma chave de 32 bytes em hexadecimal, rode:
+Tenha o Bun instalado e uma cópia deste repositório. As instruções para Windows, Linux e macOS estão no [tutorial](tutorial.md#1-preparar-o-computador).
 
-```powershell
-bun -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
-```
-
-O `.env` está no `.gitignore`. A `APP_KEY` fica no servidor. Para mudar de grupo ou salvar um link, o navegador envia apenas a sessão e os dados do formulário. O servidor fornece a chave à operação interna e valida a sessão, a origem e as permissões.
-
-Com o Bun instalado, rode estes comandos a partir de `pweb`.
+No PowerShell, a partir da pasta `pweb`:
 
 ```powershell
 cd controle_n2
-bun install
-bun run dev
+bun install --frozen-lockfile
+Copy-Item .env.example .env
+bun -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
 ```
 
-Abra [http://127.0.0.1:3400](http://127.0.0.1:3400). O servidor lê `docs/alunos.md` a cada inicialização. Use uma matrícula e a data de nascimento correspondente para entrar. Na primeira execução, o servidor cria `controle_n2.sqlite`. A lista real e os bancos locais são ignorados pelo Git.
+Copie a chave gerada para `APP_KEY` no `.env`. Use credenciais inventadas para o professor, por exemplo:
 
-Para rodar os dois sistemas juntos, abra outro terminal, entre em `pweb/academico`, instale as dependências de lá e rode `bun run dev`. O Acadêmico usa **5173** para a interface e **3333** para a API.
+```dotenv
+PROFESSOR_MATRICULA=9999999
+PROFESSOR_DATA_NASCIMENTO=1980-01-01
+APP_KEY=COLE_AQUI_A_CHAVE_GERADA_COM_64_CARACTERES_HEXADECIMAIS
+CONTROLE_N2_DADOS_EXEMPLO=1
+```
 
-Para praticar com a lista fictícia, pare o servidor e rode no PowerShell.
+A última variável seleciona os **15 alunos fictícios** de [alunos.exemplo.md](docs/alunos.exemplo.md) e o banco **exemplo.sqlite**. Assim, você consegue testar sem `docs/alunos.md`. Substitua o texto ilustrativo de `APP_KEY` pela chave gerada. Se já houver um `.env`, ajuste-o sem sobrescrever suas configurações.
+
+Inicie:
 
 ```powershell
-$env:CONTROLE_N2_DADOS_EXEMPLO = "1"
 bun run dev
 ```
 
-Nesse modo, o servidor usa `docs/alunos.exemplo.md` e grava as escolhas em `exemplo.sqlite`. Para voltar aos dados reais, pare o servidor e execute `Remove-Item Env:CONTROLE_N2_DADOS_EXEMPLO` antes de iniciá-lo novamente.
+| Recurso | Endereço |
+| --- | --- |
+| Aplicação | [http://127.0.0.1:3400](http://127.0.0.1:3400) |
+| Catálogo público em JSON | [http://127.0.0.1:3400/api/grupos](http://127.0.0.1:3400/api/grupos) |
+| Documentação interativa | [http://127.0.0.1:3400/docs](http://127.0.0.1:3400/docs) |
+| Especificação OpenAPI | [http://127.0.0.1:3400/api/openapi.json](http://127.0.0.1:3400/api/openapi.json) |
 
-## Ambiente do professor
+Para entrar como aluna de exemplo, use matrícula **2610001** e nascimento **14/03/2006**. No campo de data, selecione esse dia; a interface envia `2006-03-14`. Para entrar como professor, use os valores que você definiu no `.env`.
 
-Entre pela mesma página que os alunos usando a matrícula e a data de nascimento do `.env`. No menu do topo, escolha **Grupos e repositórios**, **Auditoria** ou **Alunos sem grupo**. O relatório de alunos sem grupo lista nomes e matrículas em ordem alfabética e mostra o total. Use o ícone **Atualizar painel**, no canto superior direito, para consultar as alterações mais recentes.
+Pare com `Ctrl+C`. Em desenvolvimento, alterações podem reiniciar o servidor; entre novamente e atualize a página. As sessões ficam em memória e os dados gravados continuam no SQLite.
 
-Em **Grupos e repositórios**, clique em **Escolher grupo** para sortear um grupo com integrantes. O cartão sorteado ganha destaque e mostra **Iniciar avaliação**. A escolha e o início da avaliação ficam registrados no SQLite.
+## O que cada perfil faz
 
-**Iniciar avaliação** abre a página **Avaliação do grupo**. A barra lateral lista os integrantes do grupo em avaliação. **Escolher dupla** sorteia o principal e o assistente entre esses integrantes. Se houver um só integrante, ele responde sozinho. A dupla fica salva para retomar a avaliação.
+| Perfil | Funcionalidades |
+| --- | --- |
+| Visitante | Consulta projetos, ocupação e links pelo catálogo público, sem os nomes dos integrantes |
+| Aluno | Entra com matrícula e nascimento, lê enunciados, escolhe ou troca de grupo e salva o repositório do próprio grupo |
+| Professor | Consulta grupos, links, alunos sem grupo e auditoria; sorteia grupos e duplas; encerra rodadas e consulta avaliações finalizadas |
 
-O catálogo público em [`/api/grupos`](http://127.0.0.1:3400/api/grupos) apresenta projetos, ocupação e links do GitHub. Os nomes dos integrantes e o painel exigem login. A auditoria no navegador exige o perfil de professor.
+A avaliação só inicia quando o grupo sorteado tem integrantes e enviou o link do GitHub. Cada dupla pode incluir um principal, um assistente e um integrante chamado. As três opções de avaliação pedem confirmação. Quem concluiu uma rodada aparece desabilitado com um check na lista e fica fora dos próximos sorteios. O grupo encerrado aparece em verde com ✓ e **Visualizar avaliação** no painel do professor.
 
-A [documentação interativa em `/docs`](http://127.0.0.1:3400/docs) permite testar as consultas públicas. A interface do Scalar é carregada de um CDN e precisa de internet.
+O sistema guarda **participações e estados da avaliação**. As notas numéricas e o texto das perguntas não são lançados pela aplicação; a rubrica está nos [critérios da atividade](docs/criterios-de-avaliacao.md). Para sortear o próximo grupo, o professor clica novamente em **Escolher grupo**.
 
-## Como estudar o código
+## Comandos disponíveis
 
-1. Leia `src/servidor/documentos.ts` para ver como a aplicação lê os registros e enunciados dos documentos Markdown.
-2. Em `src/servidor/banco.ts`, acompanhe a transação que confere a lotação e grava a escolha.
-3. Em `src/servidor/api.ts`, identifique como a sessão informa quem está trocando de grupo.
-4. Abra `src/web/principal.tsx` para seguir o formulário de acesso, a lista e os detalhes. A interface usa componentes no padrão shadcn/ui adaptados para CSS local.
+Execute na pasta `controle_n2`:
 
-Rode `bun run verificar` para checar os tipos e `bun test` para testar o fluxo com alunos fictícios.
+| Comando | Resultado |
+| --- | --- |
+| `bun install --frozen-lockfile` | Instala as versões registradas no arquivo de dependências |
+| `bun run dev` | Inicia o servidor com observação de alterações |
+| `bun run start` | Inicia o mesmo servidor sem observar alterações |
+| `bun run verificar` | Confere os tipos com `tsc --noEmit` |
+| `bun test` | Executa os testes automatizados com dados fictícios |
+| `bun run iniciar-grupos` | Completa inscrições aleatórias até aproximadamente 80% da turma |
+| `bun run auditoria` | Mostra os eventos de inscrição e repositório no terminal |
 
-## Consultar a auditoria
+`iniciar-grupos` preserva inscrições existentes, respeita dez vagas por grupo e registra os novos vínculos na auditoria. Com os 15 alunos fictícios e o banco vazio, inscreve **12** e deixa **3** sem grupo. Ele usa o modo de dados selecionado no ambiente e não é executado automaticamente.
 
-Na pasta `controle_n2`, execute `bun run auditoria` para ver o histórico em ordem de registro. Cada evento mostra a data e a hora em UTC, a matrícula de quem fez a alteração e os valores anteriores e novos aplicáveis. O comando usa o mesmo banco selecionado para o servidor, inclusive quando `CONTROLE_N2_DADOS_EXEMPLO` está ativado. Veja os [campos da auditoria](docs/banco-de-dados.md#auditoria).
+## Onde os dados ficam
 
-- [Documentação do Controle N2](docs/README.md)
-- [Material de estudo compartilhado](../docs/README.md)
+| Arquivo | Uso |
+| --- | --- |
+| `docs/alunos.exemplo.md` | Cadastros fictícios versionados para estudar |
+| `docs/alunos.md` | Lista local da turma, usada quando o modo de exemplo está desativado |
+| `docs/trabalhos.md` | Fonte dos dez enunciados carregados pelo servidor |
+| `.env` | Configuração local e credenciais do professor |
+| `exemplo.sqlite` | Persistência do modo de exemplo |
+| `controle_n2.sqlite` | Persistência do modo normal |
+
+O [`.gitignore` compartilhado](../.gitignore) exclui a lista real, o `.env` e os bancos. A `APP_KEY` fica no servidor; o navegador usa o cookie de sessão. As tabelas são criadas automaticamente. Para recomeçar um teste com o banco de exemplo vazio, siga o procedimento de [backup e reinício](tutorial.md#7-reiniciar-ou-guardar-os-testes).
+
+## Organização do projeto
+
+```text
+controle_n2/
+├── src/
+│   ├── tipos.ts              # Contratos de dados compartilhados
+│   ├── servidor/             # HTTP, regras, Markdown, SQLite e comandos
+│   └── web/                  # Interface React e componentes locais
+├── docs/                     # Referência, enunciados, uso e exercícios
+├── .env.example              # Modelo de configuração
+├── package.json              # Scripts e dependências
+├── bun.lock                  # Versões resolvidas
+├── tsconfig.json             # Regras do TypeScript
+├── arquitetura.md            # Como a aplicação foi organizada
+└── tutorial.md               # Execução e roteiro de construção
+```
+
+O [tutorial](tutorial.md) inclui um teste completo com os dois perfis, inspeção das requisições e resolução de problemas. Para executar também o Acadêmico, use outro terminal e siga o [README dele](../academico/README.md): são aplicações com dependências e comandos próprios.

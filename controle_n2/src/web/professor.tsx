@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import type { EventoAuditoria, PainelProfessor } from "../tipos";
+import type { AcaoAvaliacao, EventoAuditoria, Grupo, PainelProfessor, ResultadoImportacaoAlunos } from "../tipos";
 import { PaginaAvaliacao } from "./avaliacao";
 import { Button, Card } from "./componentes/ui";
+import { FormularioImportacaoAlunos } from "./importar-alunos";
 
 const nomesDasAcoes: Record<EventoAuditoria["acao"], string> = {
   entrada_grupo: "Entrada no grupo",
@@ -15,38 +16,51 @@ const paginas = [
   { id: "grupos", nome: "Grupos e repositórios" },
   { id: "auditoria", nome: "Auditoria" },
   { id: "alunos-sem-grupo", nome: "Alunos sem grupo" },
+  { id: "importar-alunos", nome: "Importar alunos" },
 ] as const;
 
-function paginaAtual() {
-  if (window.location.hash === "#professor/avaliacao") return "avaliacao";
-  return paginas.find(({ id }) => window.location.hash === "#professor/" + id)?.id ?? "grupos";
+function paginaAtual(rota: string) {
+  if (/^#professor\/avaliacao(?:\/\d+)?$/.test(rota)) return "avaliacao";
+  return paginas.find(({ id }) => rota === "#professor/" + id)?.id ?? "grupos";
 }
 
-export function AmbienteProfessor({ painel, ocupado, atualizar, aoSortear, aoIniciar, aoSortearDupla }: {
+export function AmbienteProfessor({ painel, ocupado, atualizar, aoSortear, aoIniciar, aoSortearDupla, aoAtualizarAvaliacao, aoImportarAlunos, resultadoImportacao }: {
   painel: PainelProfessor;
   ocupado: boolean;
   atualizar: () => void;
   aoSortear: () => void;
   aoIniciar: (grupoId: number) => void;
   aoSortearDupla: (grupoId: number) => void;
+  aoAtualizarAvaliacao: (grupoId: number, acao: AcaoAvaliacao) => void;
+  aoImportarAlunos: (arquivo: File) => void;
+  resultadoImportacao?: ResultadoImportacaoAlunos | null;
 }) {
-  const [pagina, setPagina] = useState(paginaAtual);
+  const [rota, setRota] = useState(() => window.location.hash);
   useEffect(() => {
-    const sincronizarPagina = () => setPagina(paginaAtual());
+    const sincronizarPagina = () => setRota(window.location.hash);
     window.addEventListener("hashchange", sincronizarPagina);
     return () => window.removeEventListener("hashchange", sincronizarPagina);
   }, []);
 
+  const pagina = paginaAtual(rota);
   const totalSemGrupo = painel.alunosSemGrupo.length;
   const avaliacao = painel.avaliacaoAtual;
+  const concluidas = new Map(painel.avaliacoesConcluidas.map((item) => [item.grupoId, item]));
   const escolhido = painel.grupos.find(({ id }) => id === avaliacao?.grupoId);
-  if (pagina === "avaliacao" && escolhido && painel.avaliacaoAlunos) {
-    return <PaginaAvaliacao grupo={escolhido} avaliacao={painel.avaliacaoAlunos}
-      ocupado={ocupado} aoSortear={() => aoSortearDupla(escolhido.id)} />;
+  const idNaRota = /^#professor\/avaliacao\/(\d+)$/.exec(rota)?.[1];
+  const grupoId = idNaRota ? Number(idNaRota) : avaliacao?.grupoId;
+  const grupoDaAvaliacao = painel.grupos.find(({ id }) => id === grupoId);
+  const concluida = grupoId === undefined ? undefined : concluidas.get(grupoId);
+  const dadosAvaliacao = concluida ?? (avaliacao?.grupoId === grupoId ? painel.avaliacaoAlunos : null);
+  if (pagina === "avaliacao" && grupoDaAvaliacao && dadosAvaliacao) {
+    return <PaginaAvaliacao grupo={grupoDaAvaliacao} avaliacao={dadosAvaliacao} finalizada={!!concluida}
+      ocupado={ocupado} aoSortear={() => aoSortearDupla(grupoDaAvaliacao.id)}
+      aoAtualizar={(acao) => aoAtualizarAvaliacao(grupoDaAvaliacao.id, acao)} />;
   }
   const paginaVisivel = pagina === "avaliacao" ? "grupos" : pagina;
-  const podeSortear = (!avaliacao || (avaliacao.estado === "sorteado" && !escolhido?.integrantes.length))
-    && painel.grupos.some(({ integrantes }) => integrantes.length > 0);
+  const elegivel = (grupo?: Grupo) => !!grupo && grupo.integrantes.length > 0 && !!grupo.repositorioGithub;
+  const podeSortear = (!avaliacao || (avaliacao.estado === "sorteado" && !elegivel(escolhido)))
+    && painel.grupos.some((grupo) => elegivel(grupo) && !concluidas.has(grupo.id));
   const legendaGrupo = (id: number) =>
     numeroGrupo(id) + " · " + (painel.grupos.find((grupo) => grupo.id === id)?.nome ?? "Grupo");
 
@@ -80,7 +94,8 @@ export function AmbienteProfessor({ painel, ocupado, atualizar, aoSortear, aoIni
         </p>
         <div className="grade">
           {painel.grupos.map((grupo) => (
-            <Card key={grupo.id} className={escolhido?.id === grupo.id ? "grupo-sorteado" : undefined}>
+            <Card key={grupo.id} className={concluidas.has(grupo.id) ? "grupo-finalizado"
+              : escolhido?.id === grupo.id ? "grupo-sorteado" : undefined}>
               <div className="cartao-topo">
                 <span className="rotulo">Grupo {numeroGrupo(grupo.id)}</span>
                 <span>{grupo.ocupacao}/{grupo.limite}</span>
@@ -97,20 +112,30 @@ export function AmbienteProfessor({ painel, ocupado, atualizar, aoSortear, aoIni
                   ? <a className="link-github" href={grupo.repositorioGithub} target="_blank" rel="noopener noreferrer">Abrir no GitHub</a>
                   : <span>Link ainda não enviado</span>}
               </div>
+              {concluidas.has(grupo.id) && (
+                <div className="acoes-avaliacao">
+                  <strong className="grupo-finalizado-status"><span aria-hidden="true">✓</span> Grupo finalizado</strong>
+                  <a href={"#professor/avaliacao/" + grupo.id}>Visualizar avaliação</a>
+                </div>
+              )}
               {avaliacao?.grupoId === grupo.id && (
                 <div className="acoes-avaliacao">
                   {avaliacao.estado === "em_avaliacao" ? (
                     <>
                       <strong>Avaliação em andamento</strong>
-                      <a href="#professor/avaliacao">Abrir avaliação</a>
+                      <a href={"#professor/avaliacao/" + grupo.id}>Abrir avaliação</a>
                     </>
                   ) : (
                     <>
                       <strong>Grupo sorteado</strong>
-                      <Button type="button" disabled={ocupado || grupo.integrantes.length === 0}
+                      <Button type="button" disabled={ocupado || grupo.integrantes.length === 0 || !grupo.repositorioGithub}
+                        aria-describedby={!grupo.repositorioGithub ? "repositorio-pendente-" + grupo.id : undefined}
                         onClick={() => aoIniciar(grupo.id)}>
                         Iniciar avaliação
                       </Button>
+                      {!grupo.repositorioGithub && (
+                        <p id={"repositorio-pendente-" + grupo.id}>Aguardando o envio do link do GitHub para iniciar a avaliação.</p>
+                      )}
                     </>
                   )}
                 </div>
@@ -118,6 +143,9 @@ export function AmbienteProfessor({ painel, ocupado, atualizar, aoSortear, aoIni
             </Card>
           ))}
         </div>
+      </section>
+      <section aria-labelledby="titulo-importar-alunos" hidden={pagina !== "importar-alunos"}>
+        <FormularioImportacaoAlunos ocupado={ocupado} resultado={resultadoImportacao} aoImportar={aoImportarAlunos} />
       </section>
       <section id="pagina-alunos-sem-grupo" aria-labelledby="titulo-alunos-sem-grupo" hidden={pagina !== "alunos-sem-grupo"}>
         <div className="introducao">
