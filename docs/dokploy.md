@@ -4,7 +4,8 @@ Este guia publica os dois sistemas do repositório em um único domínio, usando
 
 | Endereço | O que abre | Origem no repositório |
 | --- | --- | --- |
-| `https://pweb.computacao.cloud/` | Página inicial com links para os sistemas | [index.html](../index.html) |
+| `https://pweb.computacao.cloud/` | Página inicial com links para a aula e os sistemas | [index.html](../index.html) |
+| `https://pweb.computacao.cloud/web/` | Aula: slides em HTML sobre o Controle Acadêmico | [web/](../web/) |
 | `https://pweb.computacao.cloud/avaliacao/` | Controle Acadêmico (site + API em `/avaliacao/api`) | [academico/](../academico/) |
 | `https://pweb.computacao.cloud/n2/` | Controle N2 (páginas + API em `/n2/api`) | [controle_n2/](../controle_n2/) |
 
@@ -13,6 +14,7 @@ Este guia publica os dois sistemas do repositório em um único domínio, usando
 ```text
 Navegador ──HTTPS──▶ Traefik (Dokploy) ──HTTP──▶ gateway (nginx :80)
                                                    ├── /              → index.html
+                                                   ├── /web/          → slides da aula (arquivos estáticos)
                                                    ├── /avaliacao/    → site do Acadêmico (arquivos estáticos)
                                                    ├── /avaliacao/api → academico-api (Bun :3333)
                                                    └── /n2/           → controle-n2 (Bun :3400)
@@ -21,7 +23,7 @@ Navegador ──HTTPS──▶ Traefik (Dokploy) ──HTTP──▶ gateway (ng
 | Arquivo | Papel |
 | --- | --- |
 | [docker-compose.yml](../docker-compose.yml) | Declara os três serviços, a rede `interna` e os volumes dos bancos |
-| [gateway/Dockerfile](../gateway/Dockerfile) | Compila o site do Acadêmico para `/avaliacao/` e monta o nginx |
+| [gateway/Dockerfile](../gateway/Dockerfile) | Compila o site do Acadêmico para `/avaliacao/`, copia os slides de `web/` e monta o nginx |
 | [gateway/nginx.conf](../gateway/nginx.conf) | Rotas por subcaminho; remove o prefixo antes de repassar às APIs |
 | [academico/Dockerfile](../academico/Dockerfile) | API do Acadêmico; popula o banco com exemplos quando ele está vazio |
 | [controle_n2/Dockerfile](../controle_n2/Dockerfile) | Servidor do Controle N2 em modo de produção |
@@ -32,7 +34,7 @@ Só o serviço `gateway` recebe domínio. Os outros dois não ficam expostos: o 
 
 1. Tenha o Dokploy instalado em um servidor e acesse o painel dele.
 2. No DNS de `computacao.cloud`, crie um registro **A** `pweb` apontando para o IP desse servidor. Confira com `nslookup pweb.computacao.cloud`.
-3. Envie para o GitHub (branch `main`) os arquivos de publicação: `index.html`, `docker-compose.yml`, `.dockerignore`, a pasta `gateway/` e os `Dockerfile`/`.dockerignore` de `academico/` e `controle_n2/`, além das alterações nos dois projetos.
+3. Envie para o GitHub (branch `main`) os arquivos de publicação: `index.html`, `docker-compose.yml`, `.dockerignore`, as pastas `gateway/` e `web/` e os `Dockerfile`/`.dockerignore` de `academico/` e `controle_n2/`, além das alterações nos dois projetos.
 4. Gere a chave do Controle N2 (64 caracteres hexadecimais) em qualquer computador:
 
    ```bash
@@ -115,7 +117,8 @@ O certificado HTTPS pode levar até um minuto para ser emitido depois do primeir
 
 | Abra | Esperado |
 | --- | --- |
-| `https://pweb.computacao.cloud/` | Página com os dois cartões |
+| `https://pweb.computacao.cloud/` | Página com três cartões: Aula, Controle Acadêmico e Controle N2 |
+| `https://pweb.computacao.cloud/web/` | Capa dos slides; `→` avança e `/web/#36` abre o slide 36 |
 | `https://pweb.computacao.cloud/avaliacao/` | Dashboard com dados de exemplo; recarregar em `/avaliacao/alunos` continua funcionando |
 | `https://pweb.computacao.cloud/avaliacao/api/docs` | Documentação Scalar do Acadêmico |
 | `https://pweb.computacao.cloud/n2/` | Tela de entrada do Controle N2 |

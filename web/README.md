@@ -34,7 +34,8 @@ web/
 ├── estilo.css          ← visual: capa, seções e slides de conteúdo
 ├── apresentacao.js     ← navegação (teclado, notas, visão geral)
 ├── assets/             ← fundos, logo e ícone da aba
-├── roteiro-slides.md   ← o que vai em cada slide (e o que já foi feito)
+├── docs/
+│   └── roteiro-slides.md ← o que vai em cada slide (e o que já foi feito)
 └── gerador/            ← código que monta o index.html
     ├── secoes/         ← um arquivo por seção do roteiro (s00 a s12)
     ├── lib.js          ← ajudantes: cartões, código, tabelas, ícones

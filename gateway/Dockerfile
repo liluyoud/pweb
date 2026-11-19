@@ -17,4 +17,7 @@ RUN bun run build
 FROM nginx:1.27-alpine
 COPY gateway/nginx.conf /etc/nginx/conf.d/default.conf
 COPY index.html /usr/share/nginx/html/index.html
+# Aula (slides em HTML): só os arquivos usados pelo navegador, sem gerador/ e docs/.
+COPY web/index.html web/estilo.css web/apresentacao.js /usr/share/nginx/html/web/
+COPY web/assets /usr/share/nginx/html/web/assets
 COPY --from=academico-web /app/apps/web/dist /usr/share/nginx/html/avaliacao
